@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicción de Porcentaje de Grasa Corporal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input:valid {
+            border-color: #28a745;
+        }
+
+        .unit {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #resultado {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .resultado-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+        }
+
+        .resultado-error {
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
+            color: white;
+            border: none;
+        }
+
+        .info-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 16px;
+            font-size: 12px;
+            margin-left: 5px;
+            cursor: help;
+        }
+
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e1e5e9;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏃‍♂️ Predicción de Grasa Corporal</h1>
+        <p class="subtitle">Ingresa tus medidas corporales para obtener una estimación precisa</p>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <form id="formulario">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="Density">
+                        Densidad Corporal
+                        <span class="info-icon tooltip" data-tooltip="Medida obtenida por hidrodensitometría">?</span>
+                    </label>
+                    <div class="input-container">
+                        <input type="number" step="0.0001" id="Density" name="Density" required 
+                               min="0.9" max="1.2" placeholder="1.0500">
+                        <span class="unit">g/cm³</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="Age">Edad</label>
+                    <div class="input-container">
+                        <input type="number" id="Age" name="Age" required 
+                               min="18" max="100" placeholder="25">
+                        <span class="unit">años</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="Weight">Peso</label>
+                    <div class="input-container">
+                        <input type="number" step="0.01" id="Weight" name="Weight" required 
+                               min="80" max="400" placeholder="170.5">
+                        <span class="unit">lbs</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="Chest">Circunferencia del Pecho</label>
+                    <div class="input-container">
+                        <input type="number" step="0.1" id="Chest" name="Chest" required 
+                               min="70" max="150" placeholder="95.2">
+                        <span class="unit">cm</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="Abdomen">Circunferencia del Abdomen</label>
+                    <div class="input-container">
+                        <input type="number" step="0.1" id="Abdomen" name="Abdomen" required 
+                               min="60" max="150" placeholder="85.7">
+                        <span class="unit">cm</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="Biceps">Circunferencia del Bíceps</label>
+                    <div class="input-container">
+                        <input type="number" step="0.1" id="Biceps" name="Biceps" required 
+                               min="20" max="50" placeholder="32.1">
+                        <span class="unit">cm</span>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn">
+                <span id="buttonText">🔬 Calcular Porcentaje de Grasa</span>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                </div>
+            </button>
+        </form>
+
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        // Actualizar barra de progreso
+        function updateProgress() {
+            const inputs = document.querySelectorAll('input[required]');
+            const filledInputs = Array.from(inputs).filter(input => input.value.trim() !== '');
+            const progress = (filledInputs.length / inputs.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Agregar listeners para actualizar progreso
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', updateProgress);
+        });
+
+        // Manejar envío del formulario
+        document.getElementById("formulario").addEventListener("submit", function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const buttonText = document.getElementById('buttonText');
+            const loading = document.getElementById('loading');
+            const resultado = document.getElementById('resultado');
+            
+            // Mostrar estado de carga
+            submitBtn.disabled = true;
+            buttonText.style.display = 'none';
+            loading.style.display = 'block';
+            resultado.style.display = 'none';
+            
+            const datos = {
+                Density: parseFloat(document.getElementById("Density").value),
+                Age: parseFloat(document.getElementById("Age").value),
+                Weight: parseFloat(document.getElementById("Weight").value),
+                Chest: parseFloat(document.getElementById("Chest").value),
+                Abdomen: parseFloat(document.getElementById("Abdomen").value),
+                Biceps: parseFloat(document.getElementById("Biceps").value)
+            };
+
+            fetch("/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const percentage = data.prediction.toFixed(2);
+                let interpretation = '';
+                
+                // Interpretación del resultado
+                if (percentage < 6) interpretation = '(Muy bajo - Atleta de élite)';
+                else if (percentage < 14) interpretation = '(Excelente)';
+                else if (percentage < 18) interpretation = '(Bueno)';
+                else if (percentage < 25) interpretation = '(Promedio)';
+                else interpretation = '(Por encima del promedio)';
+                
+                resultado.innerHTML = `
+                    <div style="font-size: 24px; margin-bottom: 10px;">📊 ${percentage}%</div>
+                    <div style="font-size: 16px; opacity: 0.9;">${interpretation}</div>
+                `;
+                resultado.className = 'resultado-success';
+                resultado.style.display = 'block';
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                resultado.innerHTML = `
+                    <div style="font-size: 20px; margin-bottom: 10px;">⚠️ Error</div>
+                    <div style="font-size: 14px;">No se pudo conectar con el servidor. Verifica que esté ejecutándose en el puerto 5000.</div>
+                `;
+                resultado.className = 'resultado-error';
+                resultado.style.display = 'block';
+            })
+            .finally(() => {
+                // Restaurar estado del botón
+                submitBtn.disabled = false;
+                buttonText.style.display = 'inline';
+                loading.style.display = 'none';
+            });
+        });
+
+        // Inicializar progreso
+        updateProgress();
+    </script>
+</body>
+</html>
