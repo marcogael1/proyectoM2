@@ -3,12 +3,13 @@ from pydantic import BaseModel
 from typing import List
 import joblib
 import os
+import uvicorn
 
-# Cargar las reglas de asociación desde el archivo .pkl
+# Cargar las reglas de asociación
 rules_path = os.path.join(os.path.dirname(__file__), "reglas_asociacion.pkl")
 rules = joblib.load(rules_path)
 
-# Inicializar la aplicación FastAPI
+# Inicializar la app FastAPI
 app = FastAPI()
 
 # Modelo de entrada
@@ -27,10 +28,8 @@ async def recomendar(input: RecomendacionInput):
                 if producto not in productos_comprados:
                     recomendaciones.append((producto, row['confidence'], row['lift']))
 
-    # Ordenar por confianza y lift
     recomendaciones = sorted(set(recomendaciones), key=lambda x: (-x[1], -x[2]))
 
-    # Devolver solo los IDs únicos (top 5)
     ids = []
     for rec in recomendaciones:
         if rec[0] not in ids:
@@ -39,3 +38,8 @@ async def recomendar(input: RecomendacionInput):
             break
 
     return {"recomendaciones": ids}
+
+# Solo necesario si corres localmente
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
